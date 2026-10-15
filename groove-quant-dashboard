@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GROOVE QUANT LABS // CYBER-PUNK 50-BOT HUD</title>
+<style>
+  :root {
+    --bg-dark: #05070d;
+    --neon-cyan: #00f0ff;
+    --neon-yellow: #fcee0a;
+    --neon-magenta: #ff0055;
+    --neon-green: #00ff66;
+    --hud-border: rgba(0, 240, 255, 0.25);
+    --hud-bg: rgba(8, 14, 28, 0.9);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+  body {
+    background-color: var(--bg-dark);
+    color: #c9d1d9;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+    overflow-x: hidden;
+    min-height: 100vh;
+    background-image: 
+      radial-gradient(circle at 50% 20%, rgba(0, 240, 255, 0.08) 0%, transparent 60%),
+      linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+    background-size: 100% 100%, 35px 35px, 35px 35px;
+    padding: 20px;
+  }
+  .scanline {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%);
+    background-size: 100% 4px; pointer-events: none; z-index: 999;
+  }
+  header {
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 2px solid var(--neon-cyan);
+    padding-bottom: 15px; margin-bottom: 20px;
+    box-shadow: 0 4px 20px rgba(0, 240, 255, 0.15);
+  }
+  .brand h1 {
+    font-size: 24px; font-weight: 900;
+    color: #fff; text-shadow: 0 0 10px var(--neon-cyan);
+    letter-spacing: 2px;
+  }
+  .brand .sub { color: var(--neon-cyan); font-size: 11px; letter-spacing: 3px; }
+  .hud-stats { display: flex; gap: 15px; }
+  .stat-box {
+    background: var(--hud-bg); border: 1px solid var(--hud-border);
+    padding: 10px 16px; border-radius: 4px; text-align: center;
+  }
+  .stat-box .title { font-size: 10px; color: #8b949e; text-transform: uppercase; }
+  .stat-box .val { font-size: 18px; font-weight: bold; color: #fff; }
+  .val.cyan { color: var(--neon-cyan); text-shadow: 0 0 8px var(--neon-cyan); }
+  .val.green { color: var(--neon-green); text-shadow: 0 0 8px var(--neon-green); }
+  .val.yellow { color: var(--neon-yellow); text-shadow: 0 0 8px var(--neon-yellow); }
+
+  .dashboard-grid {
+    display: grid; grid-template-columns: 340px 1fr 340px; gap: 20px;
+  }
+  .panel {
+    background: var(--hud-bg); border: 1px solid var(--hud-border);
+    border-radius: 6px; padding: 16px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .panel-header {
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid rgba(0, 240, 255, 0.2); padding-bottom: 6px;
+    font-size: 13px; font-weight: bold; color: var(--neon-cyan); letter-spacing: 1px;
+  }
+  .council-card {
+    background: rgba(0, 0, 0, 0.4); border-left: 3px solid var(--neon-cyan);
+    padding: 8px 10px; margin-bottom: 6px; border-radius: 0 4px 4px 0;
+  }
+  .council-card.titan { border-left-color: var(--neon-magenta); }
+  .council-card.nova { border-left-color: var(--neon-yellow); }
+  .c-name { font-size: 12px; font-weight: bold; display: flex; justify-content: space-between; }
+  .c-desc { font-size: 10px; color: #8b949e; margin-top: 3px; }
+
+  .tabs { display: flex; gap: 5px; overflow-x: auto; padding-bottom: 4px; }
+  .tab-btn {
+    background: rgba(0, 240, 255, 0.1); border: 1px solid var(--hud-border);
+    color: #fff; padding: 6px 10px; font-family: inherit;
+    font-size: 11px; cursor: pointer; border-radius: 3px; transition: 0.2s;
+  }
+  .tab-btn.active, .tab-btn:hover {
+    background: var(--neon-cyan); color: #000; font-weight: bold;
+    box-shadow: 0 0 10px var(--neon-cyan);
+  }
+  .bot-list {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+    max-height: 480px; overflow-y: auto; padding-right: 4px;
+  }
+  .bot-chip {
+    background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 8px; border-radius: 4px; font-size: 11px; cursor: pointer;
+    transition: 0.2s;
+  }
+  .bot-chip:hover { border-color: var(--neon-cyan); }
+  .bot-chip .b-top { display: flex; justify-content: space-between; font-weight: bold; }
+  .bot-chip .b-meta { display: flex; justify-content: space-between; color: #8b949e; margin-top: 4px; font-size: 9px; }
+  .tag-lvl { background: rgba(0, 255, 102, 0.2); color: var(--neon-green); padding: 1px 4px; border-radius: 2px; }
+
+  .terminal-box {
+    background: #020408; border: 1px solid rgba(0, 240, 255, 0.3);
+    font-size: 11px; padding: 10px; height: 320px; overflow-y: auto; border-radius: 4px;
+    color: #00ff66; line-height: 1.4;
+  }
+  .log-line { margin-bottom: 4px; word-break: break-all; }
+  .log-time { color: #8b949e; }
+  .log-win { color: var(--neon-green); font-weight: bold; }
+  .log-veto { color: var(--neon-magenta); }
+  .log-nova { color: var(--neon-yellow); }
+
+  .cyber-btn {
+    background: linear-gradient(45deg, #ff0055, #ff5500);
+    border: none; color: #fff; font-family: inherit;
+    font-size: 12px; font-weight: bold; padding: 12px; border-radius: 4px;
+    cursor: pointer; text-align: center; text-transform: uppercase;
+    box-shadow: 0 0 15px rgba(255, 0, 85, 0.4); transition: 0.2s;
+  }
+  .cyber-btn:hover { box-shadow: 0 0 25px rgba(255, 0, 85, 0.8); }
+
+  .xp-container { background: rgba(0,0,0,0.5); border: 1px solid var(--hud-border); border-radius: 4px; padding: 10px; }
+  .xp-bar-bg { width: 100%; height: 8px; background: #111; border-radius: 4px; overflow: hidden; margin-top: 6px; }
+  .xp-bar-fill { width: 40.2%; height: 100%; background: linear-gradient(90deg, var(--neon-cyan), var(--neon-green)); box-shadow: 0 0 8px var(--neon-green); }
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+
+<header>
+  <div class="brand">
+    <h1>GROOVE QUANT LABS</h1>
+    <div class="sub">50-BOT AUTONOMOUS DEPARTMENT // HUD V4.0</div>
+  </div>
+  <div class="hud-stats">
+    <div class="stat-box">
+      <div class="title">ვირტუალური კაპიტალი</div>
+      <div class="val green" id="hudBalance">$1,006.30</div>
+    </div>
+    <div class="stat-box">
+      <div class="title">სუფთა მოგება (PnL)</div>
+      <div class="val cyan" id="hudPnl">+$6.30</div>
+    </div>
+    <div class="stat-box">
+      <div class="title">დეპარტამენტის დონე</div>
+      <div class="val yellow" id="hudLvl">LVL 1</div>
+    </div>
+    <div class="stat-box">
+      <div class="title">შემდეგი ცვლა</div>
+      <div class="val" id="hudShift">18:50:00</div>
+    </div>
+  </div>
+</header>
+
+<div class="dashboard-grid">
+  <div class="panel">
+    <div class="panel-header">
+      <span>GEN-STAFF [HQ COUNCIL]</span>
+      <span style="font-size:10px; color:var(--neon-green);">● SYNCED</span>
+    </div>
+    <div class="council-card nova">
+      <div class="c-name"><span style="color:var(--neon-yellow)">[46] NOVA</span><span>CHIEF EXEC</span></div>
+      <div class="c-desc">იღებს საბოლოო გადაწყვეტილებას. გამოყოფს ზუსტად 1% რისკს შესაბამისი დესკიდან.</div>
+    </div>
+    <div class="council-card titan">
+      <div class="c-name"><span style="color:var(--neon-magenta)">[45] TITAN</span><span>CRO / VETO</span></div>
+      <div class="c-desc">მკაცრი სკეპტიკოსი. ბლოკავს 80% სუსტ იდეებს (Edge < 2.0% ან საინფორმაციო რისკი).</div>
+    </div>
+    <div class="council-card">
+      <div class="c-name"><span style="color:var(--neon-cyan)">[41] ATLAS</span><span>SCOUT COORD</span></div>
+      <div class="c-desc">კრებს 40 სპეციალისტი ბოტის ნედლ იდეებს ყოველ ცვლაზე.</div>
+    </div>
+    <div class="council-card">
+      <div class="c-name"><span style="color:#fff">[42] VEGA</span><span>TECH AUDIT</span></div>
+      <div class="c-desc">ფასის ტრენდები, MA20, MA50, RSI და Alt/BTC შედარება.</div>
+    </div>
+    <div class="council-card">
+      <div class="c-name"><span style="color:#fff">[43] ORION</span><span>NEWS & MACRO</span></div>
+      <div class="c-desc">სიახლეები, ტრავმები, Fed Rate, VIX ინდექსის სტრესი.</div>
+    </div>
+    <div class="council-card">
+      <div class="c-name"><span style="color:#fff">[44] LUNA</span><span>SENTIMENT</span></div>
+      <div class="c-desc">X/Reddit სოციალური ფილტრი (მხოლოდ ფილტრია, ფსონს არ დებს).</div>
+    </div>
+    <button class="cyber-btn" onclick="triggerManualScan()">⚡ RUN SCAN CYCLE (CHRONOS)</button>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <span>50-BOT SPECIALIST DIRECTORY</span>
+      <span id="botCountHeader" style="font-size:11px; color:var(--neon-cyan);">ACTIVE: 50 BOTS</span>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="filterDesk('all', this)">ყველა (50)</button>
+      <button class="tab-btn" onclick="filterDesk('crypto', this)">კრიპტო (12)</button>
+      <button class="tab-btn" onclick="filterDesk('sports', this)">სპორტი (12)</button>
+      <button class="tab-btn" onclick="filterDesk('polymarket', this)">პოლიმარკეტი (8)</button>
+      <button class="tab-btn" onclick="filterDesk('equities', this)">აქციები (8)</button>
+      <button class="tab-btn" onclick="filterDesk('ops', this)">შტაბი/ინფრა (10)</button>
+    </div>
+    <div class="bot-list" id="botListContainer"></div>
+    <div class="xp-container">
+      <div style="display:flex; justify-content:space-between; font-size:11px;">
+        <span>დეპარტამენტის XP პროგრესი (NEXT: LVL 2)</span>
+        <span style="color:var(--neon-green);" id="xpText">201 / 500 XP</span>
+      </div>
+      <div class="xp-bar-bg">
+        <div class="xp-bar-fill" id="xpFill"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <span>LIVE TERMINAL & POST-MORTEM</span>
+      <span style="font-size:10px; color:#8b949e;">LOGS: 24/7</span>
+    </div>
+    <div class="terminal-box" id="terminalBox">
+      <div class="log-line"><span class="log-time">[08:50:00]</span> <span class="log-nova">CHRONOS: 08:50 ცვლა გააქტიურდა.</span></div>
+      <div class="log-line"><span class="log-time">[08:50:02]</span> ATLAS: შემოვიდა 8 კანდიდატი იდეა.</div>
+      <div class="log-line"><span class="log-time">[08:50:04]</span> <span class="log-veto">[-] TITAN VETO: SOL/USDT Scalp (Edge 1.4% < 2%)</span></div>
+      <div class="log-line"><span class="log-time">[08:50:05]</span> <span class="log-veto">[-] TITAN VETO: SPY Reversion (Low Volume)</span></div>
+      <div class="log-line"><span class="log-time">[08:50:06]</span> <span class="log-nova">[+] NOVA: BTC/USDT 4H Long ($3.50) [APPROVED]</span></div>
+      <div class="log-line"><span class="log-time">[08:50:07]</span> <span class="log-nova">[+] NOVA: Arsenal vs Chelsea Over 2.5 ($2.50) [APPROVED]</span></div>
+      <div class="log-line"><span class="log-time">[08:50:08]</span> <span class="log-nova">[+] NOVA: Alcaraz Breakpoint ($2.50) [APPROVED]</span></div>
+      <div class="log-line"><span class="log-time">[09:50:00]</span> <span class="log-win">[WIN] BOT_01: BTC Long (+ $2.80) | +67 XP</span></div>
+      <div class="log-line"><span class="log-time">[10:15:00]</span> <span class="log-win">[WIN] BOT_13: Arsenal Over 2.5 (+ $3.10) | +71 XP</span></div>
+      <div class="log-line"><span class="log-time">[11:40:00]</span> <span class="log-win">[WIN] BOT_15: Alcaraz In-Play (+ $1.90) | +53 XP</span></div>
+      <div class="log-line"><span class="log-time">[12:10:00]</span> <span class="log-veto">[LOSS] BOT_34: NVDA Long (- $1.50) | +10 XP</span></div>
+      <div class="log-line" style="color:#fcee0a;"><span class="log-time">[12:10:02]</span> 📖 POST-MORTEM გაკვეთილი: VIX > 22-ზე აქციების დესკი პოზიციებს 50%-ით ამცირებს.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const botsData = [
+  { id: "BOT_01", name: "BTC-Trend", desk: "crypto", task: "200 EMA & 4H Trend", lvl: 1, xp: 67, win: 1, loss: 0 },
+  { id: "BOT_02", name: "ETH-Beta", desk: "crypto", task: "ETH/BTC & TOTAL3", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_03", name: "Alt-Break", desk: "crypto", task: "Volume Spikes", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_04", name: "Scalp-RSI", desk: "crypto", task: "15m RSI Oversold", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_05", name: "Fund-Arb", desk: "crypto", task: "Funding Rate Delta", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_06", name: "Orderbook", desk: "crypto", task: "Bid/Ask Wall Depth", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_07", name: "SOL-DEX", desk: "crypto", task: "Raydium New Pools", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_08", name: "EVM-Whales", desk: "crypto", task: "Smart Money Tracker", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_09", name: "Stable-Flow", desk: "crypto", task: "USDT/USDC CEX Inflows", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_10", name: "Perp-OI", desk: "crypto", task: "Open Interest Jumps", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_11", name: "L2-Scanner", desk: "crypto", task: "Base/Sui TVL Flow", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_12", name: "Risk-Gate", desk: "crypto", task: "Crypto Exposure Max 35%", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_13", name: "FB-xG-Value", desk: "sports", task: "Football xG vs Odds", lvl: 1, xp: 71, win: 1, loss: 0 },
+  { id: "BOT_14", name: "FB-Corners", desk: "sports", task: "Poisson Stats Model", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_15", name: "TN-Breakpt", desk: "sports", task: "Tennis Live Breakpoint", lvl: 1, xp: 53, win: 1, loss: 0 },
+  { id: "BOT_16", name: "TN-Surface", desk: "sports", task: "Clay/Hard Win Rates", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_17", name: "NBA-Pace", desk: "sports", task: "Possession Efficiency", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_18", name: "NBA-Props", desk: "sports", task: "Points/Rebounds Margin", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_19", name: "Euro-Def", desk: "sports", task: "Euroleague Totals", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_20", name: "UFC-Strikes", desk: "sports", task: "Strikes Diff Per Min", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_21", name: "UFC-Grapple", desk: "sports", task: "Takedown Defense Ratio", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_22", name: "Steam-Chase", desk: "sports", task: "Pinnacle Odds Drop", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_23", name: "Injury-Fast", desk: "sports", task: "Starting XI Verification", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_24", name: "Margin-Zero", desk: "sports", task: "Zero-Vig Fair Odds", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_25", name: "Parity-Arb", desk: "polymarket", task: "YES+NO < $1.00 Check", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_26", name: "Time-Decay", desk: "polymarket", task: "95%+ Safe Resolution", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_27", name: "Macro-Event", desk: "polymarket", task: "Fed Rates & CPI Bets", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_28", name: "Geopolitics", desk: "polymarket", task: "Election Trend Delta", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_29", name: "BTC-Target", desk: "polymarket", task: "Bitcoin Target Dates", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_30", name: "Kalshi-Arb", desk: "polymarket", task: "Cross-Market Spread", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_31", name: "Liq-Health", desk: "polymarket", task: "Spread & Slippage Filter", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_32", name: "Oracle-Watch", desk: "polymarket", task: "UMA Resolution Disputes", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_33", name: "SPX-Revert", desk: "equities", task: "S&P 500 20MA Reversion", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_34", name: "NDX-Mntm", desk: "equities", task: "Nasdaq-100 Momentum", lvl: 1, xp: 10, win: 0, loss: 1 },
+  { id: "BOT_35", name: "PreMkt-Gap", desk: "equities", task: "Gaps > 3% Scanner", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_36", name: "Earnings", desk: "equities", task: "EPS Surprise Spikes", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_37", name: "VIX-Stress", desk: "equities", task: "VIX Volatility Hedger", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_38", name: "Sectors", desk: "equities", task: "XLK / XLE Rotation", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_39", name: "Insiders", desk: "equities", task: "SEC Form 4 Tracking", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_40", name: "Put/Call", desk: "equities", task: "Options Sentiment Index", lvl: 1, xp: 0, win: 0, loss: 0 },
+  { id: "BOT_41", name: "ATLAS", desk: "ops", task: "Scout Coordinator", lvl: 1, xp: 120, win: 3, loss: 1 },
+  { id: "BOT_42", name: "VEGA", desk: "ops", task: "Technical & Chart Auditor", lvl: 1, xp: 95, win: 3, loss: 1 },
+  { id: "BOT_43", name: "ORION", desk: "ops", task: "News & Macro Intelligence", lvl: 1, xp: 80, win: 3, loss: 1 },
+  { id: "BOT_44", name: "LUNA", desk: "ops", task: "Social Sentiment Filter", lvl: 1, xp: 60, win: 3, loss: 1 },
+  { id: "BOT_45", name: "TITAN", desk: "ops", task: "Chief Risk Officer (VETO)", lvl: 1, xp: 150, win: 3, loss: 1 },
+  { id: "BOT_46", name: "NOVA", desk: "ops", task: "Chief Executive Execution", lvl: 1, xp: 180, win: 3, loss: 1 },
+  { id: "BOT_47", name: "CHRONOS", desk: "ops", task: "Schedule Dispatcher", lvl: 1, xp: 40, win: 0, loss: 0 },
+  { id: "BOT_48", name: "POST-MORTEM", desk: "ops", task: "Loss Lessons Analyst", lvl: 1, xp: 90, win: 0, loss: 0 },
+  { id: "BOT_49", name: "LEDGER", desk: "ops", task: "Google Drive/Sheets Sync", lvl: 1, xp: 110, win: 0, loss: 0 },
+  { id: "BOT_50", name: "DASHBOARD", desk: "ops", task: "Cyberpunk HUD Dispatcher", lvl: 1, xp: 130, win: 0, loss: 0 }
+];
+
+let currentFilter = 'all';
+
+function renderBots() {
+  const container = document.getElementById('botListContainer');
+  container.innerHTML = '';
+  const filtered = botsData.filter(b => currentFilter === 'all' || b.desk === currentFilter);
+  
+  filtered.forEach(bot => {
+    const chip = document.createElement('div');
+    chip.className = 'bot-chip';
+    chip.innerHTML = `
+      <div class="b-top">
+        <span style="color:#fff;">[${bot.id}]${bot.name}</span>
